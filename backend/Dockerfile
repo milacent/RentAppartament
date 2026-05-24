@@ -18,6 +18,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application
 COPY backend/app ./app
 
+
 # Create upload directory
 RUN mkdir -p uploads
 
