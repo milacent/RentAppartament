@@ -62,7 +62,7 @@ export const predictionsAPI = {
     apiClient.get('/predictions', { params: { skip, limit } }),
   get: (id: number) => apiClient.get(`/predictions/${id}`),
   delete: (id: number) => apiClient.delete(`/predictions/${id}`),
-  getAnalytics: () => apiClient.get('/predictions/stats/analytics'),
+  getAnalytics: (days?: number) => apiClient.get('/predictions/stats/analytics', { params: { days } }),
 };
 
 export const uploadAPI = {

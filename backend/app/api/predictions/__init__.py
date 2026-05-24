@@ -8,15 +8,14 @@ from app.schemas import PredictionCreate, PredictionResponse, PredictionDetailRe
 from app.core.exceptions import AppException
 from app.utils.auth_decorator import get_current_user
 
-
 router = APIRouter(prefix="/api/predictions", tags=["predictions"])
 
 
 @router.post("", response_model=PredictionResponse, status_code=status.HTTP_201_CREATED)
 async def create_prediction(
-    prediction_data: PredictionCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+        prediction_data: PredictionCreate,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
 ):
     """
 
@@ -24,10 +23,10 @@ async def create_prediction(
         prediction_data: Параметры объекта (комнаты, площадь, этаж и т.д.)
         db: Database session
         current_user: Текущий авторизованный пользователь
-    
+
     Returns:
         PredictionResponse: Созданный прогноз с predicted_price
-    
+
     Raises:
         HTTPException 422: Ошибка валидации данных
         HTTPException 500: Ошибка ML вывода
@@ -45,21 +44,22 @@ async def create_prediction(
 
 @router.get("", response_model=List[PredictionResponse])
 async def list_predictions(
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1, le=100),
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+        skip: int = Query(0, ge=0),
+        limit: int = Query(20, ge=1, le=100),
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
 ):
     """
+
     Args:
         skip: Количество записей для пропуска (по умолчанию 0)
         limit: Количество записей для возврата (по умолчанию 20, максимум 100)
         db: Database session
         current_user: Текущий авторизованный пользователь
-    
+
     Returns:
         List[PredictionResponse]: Список прогнозов
-    
+
     Example:
         GET /predictions?skip=0&limit=20
     """
@@ -77,9 +77,9 @@ async def list_predictions(
 
 @router.get("/{prediction_id}", response_model=PredictionDetailResponse)
 async def get_prediction(
-    prediction_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+        prediction_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
 ):
     """
 
@@ -87,10 +87,10 @@ async def get_prediction(
         prediction_id: ID прогноза
         db: Database session
         current_user: Текущий авторизованный пользователь
-    
+
     Returns:
         PredictionDetailResponse: Полная информация о прогнозе
-    
+
     Raises:
         HTTPException 404: Прогноз не найден или не принадлежит пользователю
     """
@@ -107,9 +107,9 @@ async def get_prediction(
 
 @router.delete("/{prediction_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_prediction(
-    prediction_id: int,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+        prediction_id: int,
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
 ):
     """
 
@@ -117,10 +117,10 @@ async def delete_prediction(
         prediction_id: ID прогноза для удаления
         db: Database session
         current_user: Текущий авторизованный пользователь
-    
+
     Returns:
         None (204 No Content)
-    
+
     Raises:
         HTTPException 404: Прогноз не найден
     """
@@ -136,22 +136,23 @@ async def delete_prediction(
 
 @router.get("/stats/analytics")
 async def get_analytics(
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
+        days: int = Query(90, ge=1, le=365),
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
 ):
     """
 
     Args:
         db: Database session
         current_user: Текущий авторизованный пользователь
-    
+
     Returns:
-        dict: Аналитика {avg_price, median_price, min_price, max_price, 
+        dict: Аналитика {avg_price, median_price, min_price, max_price,
               total_predictions, by_district {...}}
     """
     try:
         prediction_service = PredictionService(db)
-        analytics = await prediction_service.get_analytics(current_user.id)
+        analytics = await prediction_service.get_analytics(current_user.id, days)
         return analytics
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)

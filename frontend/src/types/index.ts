@@ -100,6 +100,8 @@ export interface Analytics {
     max_price: number;
     avg_price: number;
     median_price: number;
+    std_dev?: number;
+    variance?: number;
     count: number;
   };
   by_district: Array<{
@@ -107,4 +109,15 @@ export interface Analytics {
     avg_price: number;
     count: number;
   }>;
+  top_districts?: Array<{ district: string; avg_price: number; count: number }>;
+  bottom_districts?: Array<{ district: string; avg_price: number; count: number }>;
+  timeseries?: Array<{ date: string; avg: number; count: number }>;
+  timeseries_with_ma?: Array<{ date: string; avg: number; count: number; ma7?: number | null; ma30?: number | null }>;
+  by_rooms?: Array<{ rooms: number; avg_price: number; count: number; pct?: number }>;
+  price_buckets?: Array<{ label: string; count: number; avg_price: number }>;
+  price_histogram?: Array<{ label: string; count: number }>;
+  percentiles?: { p10: number; p25: number; p50: number; p75: number; p90: number };
+  growth_pct?: number;
+  recent_predictions?: Array<{ id: number; date: string; predicted_price: number }>;
+  last_update?: string;
 }
