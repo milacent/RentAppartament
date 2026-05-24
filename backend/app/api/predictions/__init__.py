@@ -75,6 +75,20 @@ async def list_predictions(
         raise HTTPException(status_code=e.status_code, detail=e.message)
 
 
+@router.get("/stats/analytics")
+async def get_analytics(
+        days: int = Query(90, ge=1, le=365),
+        db: AsyncSession = Depends(get_db),
+        current_user=Depends(get_current_user)
+):
+    try:
+        prediction_service = PredictionService(db)
+        analytics = await prediction_service.get_analytics(current_user.id, days)
+        return analytics
+    except AppException as e:
+        raise HTTPException(status_code=e.status_code, detail=e.message)
+
+
 @router.get("/{prediction_id}", response_model=PredictionDetailResponse)
 async def get_prediction(
         prediction_id: int,
@@ -130,29 +144,5 @@ async def delete_prediction(
             current_user.id,
             prediction_id
         )
-    except AppException as e:
-        raise HTTPException(status_code=e.status_code, detail=e.message)
-
-
-@router.get("/stats/analytics")
-async def get_analytics(
-        days: int = Query(90, ge=1, le=365),
-        db: AsyncSession = Depends(get_db),
-        current_user=Depends(get_current_user)
-):
-    """
-
-    Args:
-        db: Database session
-        current_user: Текущий авторизованный пользователь
-
-    Returns:
-        dict: Аналитика {avg_price, median_price, min_price, max_price,
-              total_predictions, by_district {...}}
-    """
-    try:
-        prediction_service = PredictionService(db)
-        analytics = await prediction_service.get_analytics(current_user.id, days)
-        return analytics
     except AppException as e:
         raise HTTPException(status_code=e.status_code, detail=e.message)

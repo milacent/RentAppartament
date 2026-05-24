@@ -77,7 +77,7 @@ export const uploadAPI = {
 };
 
 export const healthAPI = {
-  check: () => apiClient.get('/health'),
+  check: () => axios.get(`${API_BASE_URL}/health`),
 };
 
 export default apiClient;

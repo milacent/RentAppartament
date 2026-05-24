@@ -17,7 +17,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application
 COPY backend/app ./app
-COPY rental_price_model.pkl ./
 
 # Create upload directory
 RUN mkdir -p uploads

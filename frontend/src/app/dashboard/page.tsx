@@ -4,12 +4,11 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { predictionsAPI } from '@/services/api';
-import { Prediction, PredictionCreate } from '@/types';
+import { Prediction } from '@/types';
 import toast from 'react-hot-toast';
-import Link from 'next/link';
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { token, initializeAuth, logout } = useAuthStore();
   const router = useRouter();
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [loading, setLoading] = useState(false);
@@ -28,16 +27,29 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    if (!user) router.push('/auth/login');
+    initializeAuth();
+  }, [initializeAuth]);
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/auth/login');
+      return;
+    }
+
     loadPredictions();
-  }, [user, router]);
+  }, [token, router]);
 
   const loadPredictions = async () => {
     try {
       const { data } = await predictionsAPI.list(0, 20);
       setPredictions(data);
-    } catch (err) {
-      toast.error('Failed to load predictions');
+    } catch (err: any) {
+      if (err.response?.status === 401 || err.response?.status === 403) {
+        logout();
+        router.push('/auth/login');
+        return;
+      }
+      toast.error(err.response?.data?.detail || 'Не удалось загрузить прогнозы');
     }
   };
 
@@ -83,7 +95,8 @@ export default function DashboardPage() {
         description: 'Комфортная квартира',
       });
     } catch (err: any) {
-      toast.error(`❌ ${err?.message || 'Ошибка при создании прогноза'}`);
+      const detail = err.response?.data?.detail || err?.message || 'Ошибка при создании прогноза';
+      toast.error(detail);
     } finally {
       setLoading(false);
     }
@@ -94,9 +107,16 @@ export default function DashboardPage() {
       <header className="bg-slate-800 border-b border-slate-700 py-4">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">🏠 Прогноз цены на аренду</h1>
-          <Link href="/auth/logout" className="text-red-400 hover:text-red-300">
+          <button
+            type="button"
+            onClick={() => {
+              logout();
+              router.push('/auth/login');
+            }}
+            className="text-red-400 hover:text-red-300"
+          >
             Выход
-          </Link>
+          </button>
         </div>
       </header>
 

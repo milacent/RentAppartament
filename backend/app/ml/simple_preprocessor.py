@@ -1,11 +1,40 @@
-"""Simple preprocessing to convert 10 input fields to 39 model features."""
+"""Preprocessing to convert input fields to model features using CatBoost parameters."""
 import numpy as np
 import pandas as pd
 from typing import Dict, Any
+import re
+
+
+def clean_rooms(rooms):
+    """Clean and standardize room count from various formats."""
+    if pd.isna(rooms) or rooms is None:
+        return 1
+    rooms = str(rooms).lower().strip()
+    if 'студ' in rooms or 'studio' in rooms:
+        return 0
+    if 'свобод' in rooms or 'своб' in rooms:
+        return 1
+    numbers = re.findall(r'\d+', rooms)
+    if numbers:
+        return int(numbers[0])
+    return 1
+
+
+def process_time_to_metro(time_val, time_type='walk'):
+    """Process time to metro with correction for bus travel."""
+    if pd.isna(time_val) or time_val is None:
+        return 999
+    time_val = float(time_val)
+    time_type = str(time_type or 'walk').lower()
+    # Multiply by 2.5 if it's bus/transport, otherwise use as-is for walking
+    if 'bus' in time_type or 'transport' in time_type:
+        return time_val * 2.5
+    return time_val
 
 
 def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.DataFrame:
     """
+    Convert 10 input fields to model features matching CatBoost model requirements.
 
     Input fields:
     - region: str
@@ -13,159 +42,169 @@ def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.Dat
     - square: float
     - floor: int
     - max_floor: int
-    - metro: str
+    - metro: str (station name)
     - rooms: int/str
-    - time: int
-    - time_type: str
-    - description: str
-    
+    - time: int/float (minutes to metro)
+    - time_type: str ('walk' or 'bus')
+    - description: str (apartment description)
+
     Returns:
-    - pandas.DataFrame with 39 columns matching model's cb_features
+    - pandas.DataFrame with columns matching model's cb_features
     """
     
     cb_features = model_dict.get('cb_features') or model_dict.get('selected_features') or []
-    helpers = {
-        'extract_city': model_dict.get('extract_city'),
-        'extract_street_type': model_dict.get('extract_street_type'),
-        'clean_text': model_dict.get('clean_text'),
-        'extract_keywords': model_dict.get('extract_keywords'),
-        'is_central_metro': model_dict.get('is_central_metro'),
-        'lemmatize': model_dict.get('lemmatize'),
-        'central_stations': model_dict.get('central_stations'),
-    }
+
+    # Get helper functions
+    extract_city = model_dict.get('extract_city')
+    extract_street_type = model_dict.get('extract_street_type')
+    clean_text = model_dict.get('clean_text')
+    extract_keywords = model_dict.get('extract_keywords')
+    is_central_metro = model_dict.get('is_central_metro')
+    lemmatize = model_dict.get('lemmatize')
     russian_stopwords = model_dict.get('russian_stopwords', set())
     
-    region = str(data.get('region', '') or '')
-    address = str(data.get('address', '') or '')
-    square = float(data.get('square', 0.0))
-    floor = int(data.get('floor', 0))
-    max_floor = int(data.get('max_floor', 0))
-    metro = str(data.get('metro', '') or '')
-    rooms = data.get('rooms', 0)
-    if isinstance(rooms, str):
+    # Parse input
+    region = str(data.get('region', 'Москва и МО') or 'Москва и МО').strip()
+    address = str(data.get('address', '') or '').strip()
+    square = float(data.get('square', 30.0) or 30.0)
+    floor = int(data.get('floor', 1) or 1)
+    max_floor = int(data.get('max_floor', 5) or 5)
+    metro_raw = data.get('metro')
+    metro = str(metro_raw or 'no_metro').strip() if metro_raw else 'no_metro'
+
+    # Clean rooms using proper logic
+    rooms_raw = data.get('rooms', 1)
+    rooms_clean = clean_rooms(rooms_raw)
+
+    # Process time to metro with transport type correction
+    time_val = data.get('time')
+    time_type = str(data.get('time_type', 'walk') or 'walk').lower()
+    time_to_metro = process_time_to_metro(time_val, time_type)
+    if time_to_metro >= 999:
+        time_to_metro = 999
+
+    description = str(data.get('description', '') or '').strip()
+
+    # Calculate derived features
+    has_metro = 0 if (metro == 'no_metro' or pd.isna(metro) or metro == '') else 1
+    metro_very_far = 1 if time_to_metro >= 999 else 0
+    is_first_floor = 1 if floor == 1 else 0
+    is_last_floor = 1 if floor == max_floor else 0
+    floor_ratio = floor / max(max_floor, 1)
+
+    # Central metro check
+    is_central = 0
+    if is_central_metro and has_metro:
         try:
-            rooms = int(rooms)
+            is_central = 1 if is_central_metro(metro) else 0
         except:
-            rooms = 0
-    else:
-        rooms = int(rooms)
-    time_to_metro = int(data.get('time', 0))
-    time_type = str(data.get('time_type', 'walk') or 'walk')
-    description = str(data.get('description', '') or '')
-    
-    features = {}
-    
+            is_central = 0
+
+    # Additional derived features
+    rooms_per_square = rooms_clean / max(square, 1)
+    square_x_rooms = square * rooms_clean
+    log_square = np.log1p(square)
+    price_per_sqm_estimate = square / max(rooms_clean, 1)
+
+    # Extract city
+    city = region.split(' и ')[0] if ' и ' in region else region
+    if extract_city:
+        try:
+            city = extract_city(address)
+        except:
+            pass
+
+    # Extract street type
+    street_type = 'unknown'
+    if extract_street_type:
+        try:
+            street_type = extract_street_type(address)
+        except:
+            street_type = 'unknown'
+
+    # Clean and process description
+    description_clean = description
+    if clean_text and lemmatize:
+        try:
+            # Clean punctuation
+            desc_clean = re.sub(r'[^а-яёa-z\s]', ' ', description.lower())
+            desc_clean = re.sub(r'\s+', ' ', desc_clean).strip()
+            # Remove stopwords and short words
+            words = [w for w in desc_clean.split() if w not in russian_stopwords and len(w) > 2]
+            description_clean_tokens = ' '.join(words)
+            # Lemmatize
+            description_clean = lemmatize(description_clean_tokens)
+        except:
+            description_clean = description
+
+    # Extract keyword features
+    keywords = extract_keywords(description) if extract_keywords else {}
+    if not keywords:
+        keywords = {
+            'has_furniture': 0,
+            'has_appliances': 0,
+            'has_tv': 0,
+            'has_wifi': 0,
+            'has_dishwasher': 0,
+            'has_washing_machine': 0,
+            'renovation_euro': 0,
+            'renovation_cosmetic': 0,
+            'renovation_new': 0,
+            'pets_allowed': 0,
+            'children_allowed': 0,
+            'has_parking': 0,
+            'has_balcony': 0,
+            'has_security': 0,
+            'is_new_building': 0,
+        }
+
+    # Categorize features based on thresholds from notebook
+    floor_category = 'first' if floor == 1 else ('low' if floor <= 5 else ('middle' if floor <= 10 else 'high'))
+    building_height = 'low_rise' if max_floor <= 5 else ('mid_rise' if max_floor <= 9 else ('high_rise' if max_floor <= 16 else 'skyscraper'))
+    size_category = 'tiny' if square <= 30 else ('small' if square <= 50 else ('medium' if square <= 70 else ('large' if square <= 100 else 'huge')))
+    metro_accessibility = 'very_close' if time_to_metro <= 5 else ('close' if time_to_metro <= 10 else ('medium' if time_to_metro <= 15 else 'far'))
+
+    # Build feature dict
+    features = {
+        'square': square,
+        'floor': floor,
+        'max_floor': max_floor,
+        'rooms_clean': rooms_clean,
+        'time_to_metro': time_to_metro,
+        'metro_very_far': metro_very_far,
+        'is_first_floor': is_first_floor,
+        'is_last_floor': is_last_floor,
+        'floor_ratio': floor_ratio,
+        'has_metro': has_metro,
+        'is_central': is_central,
+        'rooms_per_square': rooms_per_square,
+        'square_x_rooms': square_x_rooms,
+        'log_square': log_square,
+        'price_per_sqm_estimate': price_per_sqm_estimate,
+        'region': region,
+        'city': city,
+        'metro': metro,
+        'street_type': street_type,
+        'description_clean': description_clean,
+        'floor_category': floor_category,
+        'building_height': building_height,
+        'size_category': size_category,
+        'metro_accessibility': metro_accessibility,
+        **keywords,  # Unpack all keyword features
+    }
+
+    # Create dataframe with all features in correct order
+    df_data = {}
     for fname in cb_features:
-        if fname == 'square':
-            features['square'] = square
-        elif fname == 'floor':
-            features['floor'] = floor
-        elif fname == 'max_floor':
-            features['max_floor'] = max_floor
-        elif fname in ('rooms', 'rooms_clean'):
-            features[fname] = rooms
-        elif fname in ('time', 'time_to_metro'):
-            features[fname] = time_to_metro
-        elif fname == 'is_first_floor':
-            features['is_first_floor'] = 1 if floor == 1 else 0
-        elif fname == 'is_last_floor':
-            features['is_last_floor'] = 1 if floor == max_floor else 0
-        elif fname == 'floor_ratio':
-            features['floor_ratio'] = floor / max(max_floor, 1)
-        elif fname == 'has_metro':
-            features['has_metro'] = 1 if metro and len(metro) > 0 else 0
-        elif fname == 'is_central':
-            # Use helper if available
-            if helpers['is_central_metro']:
-                try:
-                    features['is_central'] = 1 if helpers['is_central_metro'](metro) else 0
-                except:
-                    features['is_central'] = 0
-            else:
-                features['is_central'] = 0
-        elif fname == 'rooms_per_square':
-            features['rooms_per_square'] = rooms / max(square, 1)
-        elif fname == 'square_x_rooms':
-            features['square_x_rooms'] = square * rooms
-        elif fname == 'log_square':
-            features['log_square'] = np.log1p(square)
-        elif fname == 'price_per_sqm_estimate':
-            features['price_per_sqm_estimate'] = 0.0
-        elif fname == 'metro_very_far':
-            features['metro_very_far'] = 1 if time_to_metro > 30 else 0
-        elif fname == 'region':
-            features['region'] = region
-        elif fname == 'city':
-            # Use helper to extract city from address
-            if helpers['extract_city']:
-                try:
-                    features['city'] = helpers['extract_city'](address)
-                except:
-                    # fallback: use region
-                    features['city'] = region.split(' и ')[0] if ' и ' in region else region
-            else:
-                features['city'] = region.split(' и ')[0] if ' и ' in region else region
-        elif fname == 'metro':
-            features['metro'] = metro
-        elif fname == 'street_type':
-            if helpers['extract_street_type']:
-                try:
-                    features['street_type'] = helpers['extract_street_type'](address)
-                except:
-                    features['street_type'] = ''
-            else:
-                features['street_type'] = ''
-        elif fname == 'description_clean':
-            # Use helper to clean text
-            if helpers['clean_text']:
-                try:
-                    features['description_clean'] = helpers['clean_text'](description)
-                except:
-                    features['description_clean'] = description
-            else:
-                features['description_clean'] = description
-        elif fname == 'floor_category':
-            if floor <= 3:
-                features['floor_category'] = 'low'
-            elif floor <= 7:
-                features['floor_category'] = 'middle'
-            else:
-                features['floor_category'] = 'high'
-        elif fname == 'building_height':
-            if max_floor <= 5:
-                features['building_height'] = 'low_rise'
-            elif max_floor <= 12:
-                features['building_height'] = 'mid_rise'
-            elif max_floor <= 20:
-                features['building_height'] = 'high_rise'
-            else:
-                features['building_height'] = 'skyscraper'
-        elif fname == 'size_category':
-            # Categorize apartment size
-            if square <= 30:
-                features['size_category'] = 'small'
-            elif square <= 60:
-                features['size_category'] = 'medium'
-            elif square <= 100:
-                features['size_category'] = 'large'
-            else:
-                features['size_category'] = 'huge'
-        elif fname == 'metro_accessibility':
-            if time_to_metro <= 10:
-                features['metro_accessibility'] = 'close'
-            elif time_to_metro <= 30:
-                features['metro_accessibility'] = 'medium'
-            else:
-                features['metro_accessibility'] = 'far'
-        else:
-            features[fname] = 0
-    
-    df = pd.DataFrame([{k: features.get(k, 0) for k in cb_features}])
-    
+        df_data[fname] = features.get(fname, 0)
+
+    df = pd.DataFrame([df_data])
+
+    # Ensure categorical columns are strings
     cat_cols = ['region', 'city', 'metro', 'street_type', 'description_clean',
                 'floor_category', 'building_height', 'size_category', 'metro_accessibility']
     for col in cat_cols:
         if col in df.columns:
             df[col] = df[col].astype(str)
     
-    return df  # DataFrame with 39 columns in correct order
+    return df

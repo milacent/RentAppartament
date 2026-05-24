@@ -5,7 +5,7 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.prediction_repository import PredictionRepository
 from app.models import Prediction, Image
-from app.ml.model_loader import ModelLoader, FeaturePreprocessor
+from app.ml.model_loader import ModelLoader
 from app.core.exceptions import NotFoundError, ValidationError
 from app.utils.logger import logger
 
@@ -17,13 +17,12 @@ class PredictionService:
         self.db = db
         self.prediction_repo = PredictionRepository(db)
         self.model_dict = ModelLoader.get_model()
-        self.preprocessor = FeaturePreprocessor(self.model_dict)
         self.model = self.model_dict['final_model']
 
     async def create_prediction(self, user_id: int, data: dict) -> Prediction:
         """Create new prediction with ML inference using 10 input fields."""
         try:
-            from app.ml.simple_preprocessor import preprocess_input
+            from app.ml.simple_preprocessor import clean_rooms, preprocess_input
 
             # Prepare input data with only 10 required fields
             input_data = {
@@ -38,6 +37,7 @@ class PredictionService:
                 'time_type': data.get('time_type', 'walk'),
                 'description': data.get('description', ''),
             }
+            rooms_clean = clean_rooms(input_data['rooms'])
 
             # Preprocess to 76 features
             features = preprocess_input(input_data, self.model_dict)
@@ -45,8 +45,8 @@ class PredictionService:
             # Run inference
             start_time = time.time()
             log_prediction = float(self.model.predict(features)[0])
-            # Model predicts log(price), so we need to apply exp()
-            prediction = np.exp(log_prediction)
+            # Model predicts log(price) using log1p, so we need to apply expm1()
+            prediction = np.expm1(log_prediction)
             inference_time = (time.time() - start_time) * 1000
 
             logger.info(f"Input: {input_data}, Log pred: {log_prediction:.4f}, Price: {prediction:.2f} ₽, Time: {inference_time:.2f}ms")
@@ -74,7 +74,7 @@ class PredictionService:
             # Prepare data for storage in DB
             pred_data = {
                 'user_id': user_id,
-                'title': data.get('title', address or 'Квартира'),
+                'title': data.get('title') or address or 'Квартира',
                 'description': data.get('description'),
                 'region': region,
                 'city': city,
@@ -82,7 +82,7 @@ class PredictionService:
                 'street_type': street_type,
                 'district': data.get('district'),
                 'square': data.get('square'),
-                'rooms_clean': data.get('rooms', 1),
+                'rooms_clean': rooms_clean,
                 'floor': data.get('floor'),
                 'max_floor': data.get('max_floor'),
                 'time_to_metro': data.get('time', 15),

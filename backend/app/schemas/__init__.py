@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Union
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -48,15 +48,15 @@ class ImageResponse(BaseModel):
 # Prediction Schemas
 class PredictionCreate(BaseModel):
     """Schema for creating a new prediction - only 10 fields required by model."""
-    title: str = Field(..., min_length=1, max_length=255, description="Название/адрес объекта")
+    title: Optional[str] = Field(None, min_length=1, max_length=255, description="Название/адрес объекта")
     region: str = Field(..., min_length=1, max_length=100, description="Регион")
     address: str = Field(..., min_length=1, max_length=255, description="Адрес")
     square: float = Field(..., gt=0, le=1000, description="Площадь в кв.м")
     floor: int = Field(..., ge=1, le=100, description="Текущий этаж")
     max_floor: int = Field(..., ge=1, le=100, description="Всего этажей в доме")
     metro: str = Field(..., min_length=1, max_length=100, description="Станция метро")
-    rooms: int = Field(..., ge=1, le=10, description="Количество комнат")
-    time: int = Field(..., ge=0, le=120, description="Время до метро в минутах")
+    rooms: Union[int, str] = Field(..., description="Количество комнат")
+    time: Optional[int] = Field(None, ge=0, le=120, description="Время до метро в минутах")
     time_type: str = Field(default="walk", description="Тип пути: walk или transport")
     description: str = Field(default="", max_length=5000, description="Описание объекта")
     

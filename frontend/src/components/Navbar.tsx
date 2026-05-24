@@ -5,10 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { authAPI } from '@/services/api';
+import { useEffect } from 'react';
 
 export default function Navbar() {
   const router = useRouter();
-  const { user, logout } = useAuthStore();
+  const { user, logout, initializeAuth } = useAuthStore();
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
 
   const handleLogout = async () => {
     try {

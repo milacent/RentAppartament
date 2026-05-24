@@ -26,19 +26,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://apartment_user:password@postgres:5432/apartment_rent"
     SQLALCHEMY_ECHO: bool = False
 
-    # Redis
-    REDIS_URL: str = "redis://redis:6379/0"
-    REDIS_CACHE_TTL: int = 3600
-
     # JWT
     SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
-
-    # Celery
-    CELERY_BROKER_URL: str = "amqp://guest:guest@rabbitmq:5672//"
-    CELERY_RESULT_BACKEND: str = "redis://redis:6379/1"
 
     # Загрузка файлов
     UPLOAD_DIR: str = "/app/uploads"
@@ -47,7 +39,7 @@ class Settings(BaseSettings):
     ALLOWED_EXTENSIONS: Set[str] = {"jpg", "jpeg", "png", "webp"}
 
     # ML модель
-    MODEL_PATH: str = "/app/rental_price_model.pkl"
+    MODEL_PATH: str = "/app/app/rental_price_model.pkl"
 
     # CORS
     CORS_ORIGINS: List[str] = [
@@ -57,7 +49,6 @@ class Settings(BaseSettings):
         "http://localhost",
         "http://frontend:3000",
         "http://backend:8000",
-        "http://nginx",
     ]
 
     # Логирование
