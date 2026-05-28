@@ -22,3 +22,9 @@ htmlcov/
 __pycache__/
 *.py[cod]
 *$py.class
+# Debug files
+debug_*.py
+*.pkl
+test_*.py
+# CI/CD
+.github/workflows/*.bak
