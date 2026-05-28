@@ -53,8 +53,7 @@ jobs:
         DATABASE_URL: postgresql://apartment_user:password@localhost:5432/apartment_rent_test
         SECRET_KEY: test-secret-key-for-ci-pipeline
       run: |
-        cd backend
-        python -m pytest tests/ -v --tb=short
+        python -m pytest backend/tests/ -v --tb=short
 
   frontend-tests:
     runs-on: ubuntu-latest
