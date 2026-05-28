@@ -26,5 +26,6 @@ __pycache__/
 debug_*.py
 *.pkl
 test_*.py
+!**/tests/test_*.py
 # CI/CD
 .github/workflows/*.bak
