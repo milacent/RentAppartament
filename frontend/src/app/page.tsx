@@ -1,100 +1,102 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import Link from 'next/link';
 
 export default function Home() {
   const { user } = useAuthStore();
-  const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white">
-      {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 py-20">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold mb-6">
-            🏠 Predict Apartment Rental Prices
-          </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            AI-powered platform for accurate rental price estimation using machine learning
-          </p>
+    <div className="relative min-h-screen overflow-hidden bg-[#02030d] text-white">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-[-60px] h-72 w-72 -translate-x-1/2 rounded-full bg-[#3b82f6]/20 blur-3xl" />
+        <div className="absolute right-[-100px] top-36 h-96 w-96 rounded-full bg-[#8b5cf6]/20 blur-3xl" />
+        <div className="absolute left-[-120px] bottom-0 h-[420px] w-[420px] rounded-full bg-[#0ea5e9]/15 blur-3xl" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-[radial-gradient(circle_at_top,_rgba(99,102,241,0.14),_transparent_45%)] opacity-70" />
+      </div>
 
-          {!user ? (
-            <div className="flex justify-center gap-4">
-              <Link
-                href="/auth/register"
-                className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition"
-              >
-                Get Started
-              </Link>
-              <Link
-                href="/auth/login"
-                className="bg-white text-slate-900 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition"
-              >
-                Login
-              </Link>
-            </div>
-          ) : (
-            <Link
-              href="/dashboard"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-3 rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition inline-block"
-            >
-              Go to Dashboard
-            </Link>
-          )}
-        </div>
-      </section>
+      <main className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col gap-16 px-6 py-20 lg:px-8">
+        <section className="rounded-[32px] border border-white/10 bg-white/5 p-8 shadow-[0_40px_120px_-50px_rgba(56,189,248,0.45)] backdrop-blur-2xl lg:p-12">
+          <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div className="space-y-8">
+              <div className="inline-flex items-center gap-3 rounded-full border border-[#3b82f6]/30 bg-[#ffffff0f] px-4 py-2 text-sm text-[#c7d2fe] shadow-[0_10px_30px_-20px_rgba(59,130,246,0.5)]">
+                Premium rental analytics for modern apartments
+              </div>
 
-      {/* Features */}
-      <section className="bg-slate-800 py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12">Why Choose Us?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-slate-700 p-6 rounded-lg">
-              <h3 className="text-xl font-bold mb-3">⚡ AI-Powered</h3>
-              <p>Advanced machine learning model trained on thousands of properties</p>
-            </div>
-            <div className="bg-slate-700 p-6 rounded-lg">
-              <h3 className="text-xl font-bold mb-3">🎯 Accurate</h3>
-              <p>Get precise price predictions based on location, size, and amenities</p>
-            </div>
-            <div className="bg-slate-700 p-6 rounded-lg">
-              <h3 className="text-xl font-bold mb-3">📊 Analytics</h3>
-              <p>View detailed analytics and trends for your predictions</p>
-            </div>
-          </div>
-        </div>
-      </section>
+              <div className="space-y-5">
+                <h1 className="max-w-3xl text-5xl font-semibold leading-[1.02] tracking-[-0.04em] text-white sm:text-6xl">
+                  Predict apartment rental prices with AI
+                </h1>
+                <p className="max-w-2xl text-lg text-slate-300 sm:text-xl">
+                  Helps solve apartment rental price prediction tasks
+                </p>
+              </div>
 
-      {/* Examples */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">1️⃣</span>
+              <div className="flex flex-wrap gap-4">
+                {!user ? (
+                  <>
+                    <Link
+                      href="/auth/register"
+                      className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#3b82f6] via-[#6366f1] to-[#a78bfa] px-8 py-3 text-sm font-semibold text-white shadow-[0_20px_80px_-40px_rgba(59,130,246,0.6)] transition hover:brightness-110"
+                    >
+                      Get Started
+                    </Link>
+                    <Link
+                      href="/auth/login"
+                      className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/5 px-8 py-3 text-sm font-semibold text-slate-100 transition hover:bg-white/10"
+                    >
+                      Login
+                    </Link>
+                  </>
+                ) : (
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#3b82f6] via-[#6366f1] to-[#a78bfa] px-8 py-3 text-sm font-semibold text-white shadow-[0_20px_80px_-40px_rgba(59,130,246,0.6)] transition hover:brightness-110"
+                  >
+                    Go to Dashboard
+                  </Link>
+                )}
+              </div>
             </div>
-            <h3 className="font-bold mb-2">Add Property Details</h3>
-            <p className="text-gray-400">Enter location, size, rooms, and other details</p>
           </div>
-          <div className="text-center">
-            <div className="bg-purple-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">2️⃣</span>
-            </div>
-            <h3 className="font-bold mb-2">Upload Images</h3>
-            <p className="text-gray-400">Add photos for better price estimation</p>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-3">
+          <div className="glass-card p-8">
+            <p className="mb-4 text-sm uppercase tracking-[0.3em] text-[#a5b4fc]">Why choose us</p>
+            <h2 className="text-2xl font-semibold text-white">We help predict rental prices and set the optimal listing price</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-300">
+              We help set the optimal price for a listing or determine whether a listing's price is justified
+            </p>
           </div>
-          <div className="text-center">
-            <div className="bg-pink-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">3️⃣</span>
-            </div>
-            <h3 className="font-bold mb-2">Get Prediction</h3>
-            <p className="text-gray-400">Receive accurate rental price estimate</p>
+          <div className="glass-card p-8">
+            <h3 className="mb-3 text-xl font-semibold text-white">⚡ AI-powered</h3>
+            <p className="text-slate-300">Machine learning trained on real rental data delivers reliable forecasts</p>
           </div>
-        </div>
-      </section>
+          <div className="glass-card p-8">
+            <h3 className="mb-3 text-xl font-semibold text-white">🎯 Accurate</h3>
+            <p className="text-slate-300">It combines location, square, metro access, house prestige and text-based description features that capture the main price drivers</p>
+          </div>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-3">
+          <div className="glass-card p-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#1e293b]/80 text-2xl text-[#93c5fd]">1</div>
+            <h3 className="mt-6 text-xl font-semibold text-white">Add property details</h3>
+            <p className="mt-3 text-slate-300">Enter the address, flat area, number of rooms, floor and other description</p>
+          </div>
+          <div className="glass-card p-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#1e293b]/80 text-2xl text-[#c4b5fd]">2</div>
+            <h3 className="mt-6 text-xl font-semibold text-white">Get your estimate</h3>
+            <p className="mt-3 text-slate-300">Get precise rental price estimates with our prediction tool in just a second</p>
+          </div>
+          <div className="glass-card p-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-[#1e293b]/80 text-2xl text-[#a5f3fc]">3</div>
+            <h3 className="mt-6 text-xl font-semibold text-white">View analytics</h3>
+            <p className="mt-3 text-slate-300">View analytics for all your predictions and uncover dependencies</p>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

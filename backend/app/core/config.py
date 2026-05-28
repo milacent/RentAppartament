@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     # ML модель
     MODEL_PATH: str = "/app/app/rental_price_model.pkl"
+    PRICE_CALIBRATION_FACTOR: float = 1  # Calibrated to match actual market prices
+    # If True, return model raw prediction as in Colab (round to 100s) instead of applying calibration factor
+    USE_COLAB_PREDICTION: bool = True
 
     # CORS
     CORS_ORIGINS: List[str] = [

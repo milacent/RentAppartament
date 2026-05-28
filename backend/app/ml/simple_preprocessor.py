@@ -22,14 +22,29 @@ def clean_rooms(rooms):
 
 def process_time_to_metro(time_val, time_type='walk'):
     """Process time to metro with correction for bus travel."""
-    if pd.isna(time_val) or time_val is None:
+    # Handle None/NaN
+    if time_val is None or (isinstance(time_val, float) and pd.isna(time_val)):
+        return 15  # Default to 15 minutes
+    
+    try:
+        time_val = float(time_val)
+    except (ValueError, TypeError):
+        return 15
+    
+    if time_val <= 0:
+        return 15
+    if time_val >= 999:
         return 999
-    time_val = float(time_val)
+    
     time_type = str(time_type or 'walk').lower()
     # Multiply by 2.5 if it's bus/transport, otherwise use as-is for walking
     if 'bus' in time_type or 'transport' in time_type:
-        return time_val * 2.5
-    return time_val
+        result = time_val * 2.5
+    else:
+        result = time_val
+    
+    # Cap at 999
+    return min(result, 999)
 
 
 def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.DataFrame:
@@ -56,19 +71,74 @@ def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.Dat
 
     # Get helper functions
     extract_city = model_dict.get('extract_city')
+    extract_city_from_region = model_dict.get('extract_city_from_region') or extract_city
+    strip_city_from_address = model_dict.get('strip_city_from_address')
     extract_street_type = model_dict.get('extract_street_type')
     clean_text = model_dict.get('clean_text')
     extract_keywords = model_dict.get('extract_keywords')
     is_central_metro = model_dict.get('is_central_metro')
     lemmatize = model_dict.get('lemmatize')
     russian_stopwords = model_dict.get('russian_stopwords', set())
-    
-    # Parse input
-    region = str(data.get('region', 'Москва и МО') or 'Москва и МО').strip()
+
+    def normalize_region_value(region_value: str) -> str:
+        if not region_value:
+            return region_value
+        region_norm = str(region_value).strip().lower().replace('ё', 'е')
+        if region_norm in ('москва', 'москва и мо', 'московская область'):
+            return 'Москва'
+        if region_norm in ('санкт-петербург', 'санкт-петербург и ло', 'ленинградская область', 'спб'):
+            return 'Санкт-Петербург'
+        if region_norm in ('казань',):
+            return 'Казань'
+        if region_norm in ('екатеринбург',):
+            return 'Екатеринбург'
+        if region_norm in ('новосибирск',):
+            return 'Новосибирск'
+        if region_norm in ('нижний новгород',):
+            return 'Нижний Новгород'
+        if region_norm in ('краснодар',):
+            return 'Краснодар'
+        return str(region_value).strip()
+
+    # Parse input with type logging
+    region_raw = str(data.get('region', 'Москва и МО') or 'Москва и МО').strip()
     address = str(data.get('address', '') or '').strip()
-    square = float(data.get('square', 30.0) or 30.0)
-    floor = int(data.get('floor', 1) or 1)
-    max_floor = int(data.get('max_floor', 5) or 5)
+    region = region_raw
+    if extract_city_from_region:
+        try:
+            normalized_region = extract_city_from_region(region_raw)
+            if normalized_region:
+                region = normalized_region
+        except:
+            region = region_raw
+
+    if region == region_raw:
+        region = normalize_region_value(region_raw)
+    
+    # Safe float conversion for square
+    try:
+        square = float(data.get('square', 30.0) or 30.0)
+        if square <= 0:
+            square = 30.0
+    except (ValueError, TypeError):
+        square = 30.0
+    
+    # Safe int conversion for floor
+    try:
+        floor = int(float(str(data.get('floor', 1) or 1)))
+        if floor <= 0:
+            floor = 1
+    except (ValueError, TypeError):
+        floor = 1
+    
+    # Safe int conversion for max_floor
+    try:
+        max_floor = int(float(str(data.get('max_floor', 5) or 5)))
+        if max_floor <= 0:
+            max_floor = 5
+    except (ValueError, TypeError):
+        max_floor = 5
+    
     metro_raw = data.get('metro')
     metro = str(metro_raw or 'no_metro').strip() if metro_raw else 'no_metro'
 
@@ -80,8 +150,6 @@ def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.Dat
     time_val = data.get('time')
     time_type = str(data.get('time_type', 'walk') or 'walk').lower()
     time_to_metro = process_time_to_metro(time_val, time_type)
-    if time_to_metro >= 999:
-        time_to_metro = 999
 
     description = str(data.get('description', '') or '').strip()
 
@@ -106,19 +174,27 @@ def preprocess_input(data: Dict[str, Any], model_dict: Dict[str, Any]) -> pd.Dat
     log_square = np.log1p(square)
     price_per_sqm_estimate = square / max(rooms_clean, 1)
 
-    # Extract city
-    city = region.split(' и ')[0] if ' и ' in region else region
-    if extract_city:
+    # Extract city from region using model helper if available
+    if extract_city_from_region:
         try:
-            city = extract_city(address)
+            city = extract_city_from_region(region)
         except:
-            pass
+            city = region.split(' и ')[0] if ' и ' in region else region
+    else:
+        city = region.split(' и ')[0] if ' и ' in region else region
 
-    # Extract street type
+    address_tail = address
+    if strip_city_from_address:
+        try:
+            address_tail = strip_city_from_address(address, region)
+        except:
+            address_tail = address
+
+    # Extract street type from address tail
     street_type = 'unknown'
     if extract_street_type:
         try:
-            street_type = extract_street_type(address)
+            street_type = extract_street_type(address_tail)
         except:
             street_type = 'unknown'
 

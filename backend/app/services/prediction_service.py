@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.prediction_repository import PredictionRepository
 from app.models import Prediction, Image
 from app.ml.model_loader import ModelLoader
+from app.core.config import settings
 from app.core.exceptions import NotFoundError, ValidationError
 from app.utils.logger import logger
 
@@ -38,24 +39,51 @@ class PredictionService:
                 'description': data.get('description', ''),
             }
             rooms_clean = clean_rooms(input_data['rooms'])
+            
+            # Log input data for debugging
+            logger.info(f"Raw input rooms: {repr(input_data['rooms'])} (type: {type(input_data['rooms']).__name__})")
+            logger.info(f"Cleaned rooms: {rooms_clean}")
+            logger.info(f"Input data details:")
+            logger.info(f"  region: {input_data['region']}")
+            logger.info(f"  address: {input_data['address']}")
+            logger.info(f"  square: {input_data['square']} (type: {type(input_data['square']).__name__})")
+            logger.info(f"  floor: {input_data['floor']}/{input_data['max_floor']}")
+            logger.info(f"  metro: {input_data['metro']}")
+            logger.info(f"  time_to_metro: {input_data['time']} min ({input_data['time_type']})")
+            logger.info(f"  description: {input_data['description'][:50]}..." if len(str(input_data['description'])) > 50 else f"  description: {input_data['description']}")
 
             # Preprocess to 76 features
             features = preprocess_input(input_data, self.model_dict)
+            logger.info(f"Features shape: {features.shape}, columns: {list(features.columns[:5])}...")
 
             # Run inference
             start_time = time.time()
             log_prediction = float(self.model.predict(features)[0])
             # Model predicts log(price) using log1p, so we need to apply expm1()
-            prediction = np.expm1(log_prediction)
+            prediction_raw = float(np.expm1(log_prediction))
+            # If configured, return Colab-style raw prediction (rounded to hundreds)
+            if getattr(settings, 'USE_COLAB_PREDICTION', False):
+                prediction = float(round(prediction_raw, -2))
+                calibration_factor = 1.0
+            else:
+                calibration_factor = float(settings.PRICE_CALIBRATION_FACTOR)
+                prediction = prediction_raw * calibration_factor
             inference_time = (time.time() - start_time) * 1000
 
-            logger.info(f"Input: {input_data}, Log pred: {log_prediction:.4f}, Price: {prediction:.2f} ₽, Time: {inference_time:.2f}ms")
+            logger.info(
+                f"PREDICTION RESULT: Log pred: {log_prediction:.6f}, Raw: {prediction_raw:.2f} ₽, "
+                f"Calibrated: {prediction:.2f} ₽ (factor: {calibration_factor:.3f}), Inference: {inference_time:.2f}ms"
+            )
 
-            # Extract city from region or use region as city
-            region = data.get('region', 'Unknown')
-            city = data.get('city')
-            if not city:
-                # Extract city from region (e.g., "Москва и МО" -> "Москва")
+            # Extract city from region, not from user-provided city field
+            region = str(data.get('region', 'Unknown') or 'Unknown').strip()
+            extract_city_from_region = self.model_dict.get('extract_city_from_region') or self.model_dict.get('extract_city')
+            if extract_city_from_region:
+                try:
+                    city = extract_city_from_region(region)
+                except:
+                    city = region.split(' и ')[0] if ' и ' in region else region
+            else:
                 city = region.split(' и ')[0] if ' и ' in region else region
 
             # Extract street_type from address if possible

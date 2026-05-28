@@ -18,18 +18,22 @@ class ModelLoader:
 
     _model_dict = None
     _model_path = None
+    _model_mtime = None
 
     @classmethod
     def load_model(cls) -> Dict[str, Any]:
         """Load model from disk once and keep it in memory."""
-        if cls._model_dict is None:
+        # reload if not loaded or model file changed on disk
+        model_path = Path(settings.MODEL_PATH)
+        model_mtime = model_path.stat().st_mtime if model_path.exists() else None
+        if cls._model_dict is None or cls._model_path is None or cls._model_mtime != model_mtime:
             try:
-                model_path = Path(settings.MODEL_PATH)
                 if not model_path.exists():
                     raise FileNotFoundError(f"Model not found at {settings.MODEL_PATH}")
 
                 cls._model_dict = cls._load_pickle(model_path)
                 cls._model_path = model_path
+                cls._model_mtime = model_mtime
                 cls._validate_model_dict()
                 cls._patch_model_function_globals()
 
@@ -88,6 +92,8 @@ class ModelLoader:
             "clean_text": lambda x: x,
             "extract_keywords": lambda x: {},
             "extract_city": lambda x: "Unknown",
+            "extract_city_from_region": lambda x: "Unknown",
+            "strip_city_from_address": lambda address, region=None: str(address or ''),
             "extract_street_type": lambda x: "unknown",
             "is_central_metro": lambda x: 0,
         }
@@ -96,6 +102,9 @@ class ModelLoader:
             if key not in cls._model_dict:
                 logger.warning(f"Model missing '{key}' - using fallback")
                 cls._model_dict[key] = fallback
+
+        if "extract_city_from_region" not in cls._model_dict and "extract_city" in cls._model_dict:
+            cls._model_dict["extract_city_from_region"] = cls._model_dict["extract_city"]
 
     @classmethod
     def _patch_model_function_globals(cls) -> None:
@@ -108,6 +117,8 @@ class ModelLoader:
         for key in (
             "clean_text",
             "extract_city",
+            "extract_city_from_region",
+            "strip_city_from_address",
             "extract_keywords",
             "extract_street_type",
             "is_central_metro",
@@ -117,3 +128,47 @@ class ModelLoader:
             func_globals = getattr(func, "__globals__", None)
             if func_globals is not None:
                 func_globals.update(common_globals)
+
+        # Provide additional helpers that serialized functions may reference
+        def normalize_text(s):
+            return str(s or '').strip().lower().replace('ё', 'е')
+
+        CITY_BY_REGION = {
+            'москва': 'Москва',
+            'москва и мо': 'Москва',
+            'московская область': 'Москва',
+            'санкт-петербург': 'Санкт-Петербург',
+            'санкт-петербург и ло': 'Санкт-Петербург',
+            'ленинградская область': 'Санкт-Петербург',
+            'казань': 'Казань',
+            'екатеринбург': 'Екатеринбург',
+            'новосибирск': 'Новосибирск',
+            'нижний новгород': 'Нижний Новгород',
+            'краснодар': 'Краснодар',
+        }
+
+        extra_globals = {
+            'normalize_text': normalize_text,
+            'CITY_BY_REGION': CITY_BY_REGION,
+        }
+
+        # Try to provide pymystem3 Mystem instance if available
+        try:
+            from pymystem3 import Mystem
+
+            extra_globals['Mystem'] = Mystem
+            try:
+                extra_globals['mystem'] = Mystem()
+            except Exception:
+                extra_globals['mystem'] = None
+        except Exception:
+            # pymystem3 not available in environment
+            extra_globals['Mystem'] = None
+            extra_globals['mystem'] = None
+
+        # Update globals for all serialized helper functions
+        for key, obj in cls._model_dict.items():
+            if callable(obj):
+                fg = getattr(obj, '__globals__', None)
+                if fg is not None:
+                    fg.update(extra_globals)

@@ -18,16 +18,50 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #02030d;
+  color: #f8fafc;
+}
+
+.glass-card {
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 40px 120px -40px rgba(59, 130, 246, 0.35);
+  border-radius: 28px;
+}
+
+/* Navbar mobile dropdown explicit dark background */
+.navbar-mobile-dropdown {
+  background: rgba(6, 16, 34, 0.92) !important;
+  color: #f8fafc !important;
+}
+.navbar-mobile-dropdown a {
+  color: #f8fafc !important;
+}
+.navbar-mobile-dropdown button {
+  color: #fff !important;
+}
+
+.wave-blob {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.14) 0%, transparent 35%);
+  filter: blur(120px);
+  opacity: 0.9;
+  animation: float 16s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-20px, -20px, 0) scale(1.05);
+  }
 }
 
 .gradient {
-  background: linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%);
-}
-
-.glass {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
 }
 
 .skeleton {
@@ -52,4 +86,22 @@ body {
 .shadow-xl-custom {
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
     0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Recharts tooltip / default popup styling to match dark glass theme */
+.recharts-default-tooltip {
+  background: rgba(2, 6, 23, 0.92) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 10px 30px rgba(2,6,23,0.6) !important;
+  backdrop-filter: blur(6px) !important;
+  border-radius: 8px !important;
+}
+.recharts-tooltip-wrapper {
+  color: #f8fafc;
+}
+
+/* Ensure chart containers inherit transparent background when inside glass-card */
+.glass-card .recharts-wrapper, .glass-card svg {
+  background: transparent !important;
 }

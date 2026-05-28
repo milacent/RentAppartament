@@ -38,59 +38,70 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 flex items-center justify-center">
-      <div className="bg-slate-800 p-8 rounded-lg shadow-xl w-full max-w-md">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">Register</h1>
+    <div className="relative min-h-screen overflow-hidden bg-[#02030d] text-white">
+      <div className="pointer-events-none absolute inset-0 opacity-70">
+        <div className="absolute left-0 top-20 h-72 w-72 rounded-full bg-[#3b82f6]/20 blur-3xl" />
+        <div className="absolute right-1/4 bottom-0 h-96 w-96 rounded-full bg-[#8b5cf6]/20 blur-3xl" />
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-gray-300 mb-2">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 text-white border border-slate-600 rounded focus:outline-none focus:border-blue-500"
-            />
+      <div className="relative z-10 flex min-h-screen items-center justify-center px-6 py-10">
+        <div className="glass-card w-full max-w-lg border border-white/10 p-10 shadow-[0_40px_120px_-50px_rgba(59,130,246,0.35)]">
+          <div className="mb-8 text-center">
+            <div className="text-sm uppercase tracking-[0.35em] text-[#a5b4fc]">FairCost.AI</div>
+            <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white">Create your account</h1>
+            <p className="mt-3 text-sm text-slate-300">Start forecasting rental value with AI-powered insights.</p>
           </div>
 
-          <div>
-            <label className="block text-gray-300 mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 text-white border border-slate-600 rounded focus:outline-none focus:border-blue-500"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Full Name</label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-3xl border border-white/10 bg-white/5 px-5 py-3 text-white shadow-inner shadow-slate-900/20 outline-none transition focus:border-[#3b82f6] focus:ring-2 focus:ring-[#3b82f6]/20"
+              />
+            </div>
 
-          <div>
-            <label className="block text-gray-300 mb-2">Password (min 8 chars)</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-700 text-white border border-slate-600 rounded focus:outline-none focus:border-blue-500"
-              required
-              minLength={8}
-            />
-          </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-3xl border border-white/10 bg-white/5 px-5 py-3 text-white shadow-inner shadow-slate-900/20 outline-none transition focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20"
+                required
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 rounded font-semibold hover:from-blue-700 hover:to-purple-700 transition disabled:opacity-50"
-          >
-            {loading ? 'Creating account...' : 'Register'}
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-slate-200 mb-2">Password (min 8 chars)</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-3xl border border-white/10 bg-white/5 px-5 py-3 text-white shadow-inner shadow-slate-900/20 outline-none transition focus:border-[#8b5cf6] focus:ring-2 focus:ring-[#8b5cf6]/20"
+                required
+                minLength={8}
+              />
+            </div>
 
-        <p className="text-gray-400 text-center mt-6">
-          Already have an account?{' '}
-          <Link href="/auth/login" className="text-blue-400 hover:text-blue-300">
-            Login here
-          </Link>
-        </p>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-full bg-gradient-to-r from-[#3b82f6] via-[#6366f1] to-[#a78bfa] px-6 py-3 text-base font-semibold text-white shadow-[0_24px_80px_-40px_rgba(59,130,246,0.7)] transition hover:brightness-110 disabled:opacity-50"
+            >
+              {loading ? 'Creating account...' : 'Register'}
+            </button>
+          </form>
+
+          <p className="mt-8 text-center text-sm text-slate-400">
+            Already have an account?{' '}
+            <Link href="/auth/login" className="font-semibold text-white hover:text-[#c7d2fe]">
+              Login here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

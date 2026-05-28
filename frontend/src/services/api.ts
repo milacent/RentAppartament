@@ -62,7 +62,8 @@ export const predictionsAPI = {
     apiClient.get('/predictions', { params: { skip, limit } }),
   get: (id: number) => apiClient.get(`/predictions/${id}`),
   delete: (id: number) => apiClient.delete(`/predictions/${id}`),
-  getAnalytics: (days?: number) => apiClient.get('/predictions/stats/analytics', { params: { days } }),
+  // getAnalytics accepts an optional params object: { days, start_date, end_date, district }
+  getAnalytics: (params?: Record<string, any>) => apiClient.get('/predictions/stats/analytics', { params }),
 };
 
 export const uploadAPI = {
