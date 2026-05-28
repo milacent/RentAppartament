@@ -54,7 +54,7 @@ jobs:
         SECRET_KEY: test-secret-key-for-ci-pipeline
       run: |
         cd backend
-        pytest -v --cov=app tests/
+        python -m pytest tests/ -v --tb=short
 
   frontend-tests:
     runs-on: ubuntu-latest
@@ -101,7 +101,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          dockerfile: backend/Dockerfile
+          file: backend/Dockerfile
           tags: apartment-rent-backend:latest
           push: false
 
@@ -109,6 +109,6 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          dockerfile: frontend/Dockerfile
+          file: frontend/Dockerfile
           tags: apartment-rent-frontend:latest
           push: false
