@@ -1,3 +1,6 @@
+from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+from fastapi.responses import Response as FastAPIResponse
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -67,14 +70,16 @@ app = FastAPI(
     version=settings.VERSION,
     lifespan=lifespan,
 )
+Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+
+@app.get("/metrics")
+async def metrics_endpoint():
+    try:
+        data = generate_latest()
+        return FastAPIResponse(content=data, media_type=CONTENT_TYPE_LATEST)
+    except Exception as error:
+        return JSONResponse(status_code=500, content={"detail": "Metrics generation failed"})
 
 
 @app.exception_handler(AppException)
@@ -102,6 +107,13 @@ async def root():
         "docs": "/docs",
     }
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router)
 app.include_router(predictions_router)
